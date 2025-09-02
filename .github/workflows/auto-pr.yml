@@ -8,6 +8,11 @@ on:
     - cron: '0 9 * * *'
   workflow_dispatch: # Allow manual trigger
 
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
 jobs:
   auto-pr-dev1-to-staging:
     if: github.ref == 'refs/heads/dev1' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
