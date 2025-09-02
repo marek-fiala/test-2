@@ -54,8 +54,14 @@ jobs:
         id: check-pr
         if: steps.check-diff.outputs.has-changes == 'true'
         run: |
-          PR_COUNT=$(gh pr list --head dev1 --base staging --state open --json number --jq length)
-          echo "exists=$([ $PR_COUNT -gt 0 ] && echo true || echo false)" >> $GITHUB_OUTPUT
+          PR_NUMBER=$(gh pr list --head dev1 --base staging --state open --json number --jq '.[0].number // empty')
+          if [ -n "$PR_NUMBER" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "number=$PR_NUMBER" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "number=" >> $GITHUB_OUTPUT
+          fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -101,6 +107,45 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Update existing Pull Request dev1 → staging
+        if: steps.check-diff.outputs.has-changes == 'true' && steps.check-pr.outputs.exists == 'true'
+        run: |
+          COMMITS=$(git log origin/staging..origin/dev1 --oneline --no-merges | head -10)
+          FILES_CHANGED=$(git diff --name-only origin/staging origin/dev1 | head -20)
+
+          cat > pr_body.md << 'EOF'
+          ## 🚀 Development to Staging Sync
+
+          **Auto-generated PR**: Syncing latest development changes to staging environment.
+          
+          **🔄 Last updated**: $(date -u '+%Y-%m-%d %H:%M UTC')
+
+          ### 🔍 Recent Commits
+          ```
+          EOF
+          echo "$COMMITS" >> pr_body.md
+          cat >> pr_body.md << 'EOF'
+          ```
+
+          ### 📁 Files Modified
+          EOF
+          echo "$FILES_CHANGED" | sed 's/^/- `/' | sed 's/$/`/' >> pr_body.md
+          cat >> pr_body.md << 'EOF'
+
+          ### ✅ Merge Instructions
+          - **Use "Create a merge commit" when merging**
+          - Ensure all CI checks pass before merging
+          - Review changes for staging compatibility
+
+          ---
+          *🤖 This PR was created automatically by GitHub Actions*
+          EOF
+
+          gh pr edit ${{ steps.check-pr.outputs.number }} \
+            --body-file pr_body.md
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   auto-pr-staging-to-main:
     if: github.ref == 'refs/heads/staging' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
@@ -141,8 +186,14 @@ jobs:
         id: check-pr
         if: steps.check-diff.outputs.has-changes == 'true'
         run: |
-          PR_COUNT=$(gh pr list --head staging --base main --state open --json number --jq length)
-          echo "exists=$([ $PR_COUNT -gt 0 ] && echo true || echo false)" >> $GITHUB_OUTPUT
+          PR_NUMBER=$(gh pr list --head staging --base main --state open --json number --jq '.[0].number // empty')
+          if [ -n "$PR_NUMBER" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "number=$PR_NUMBER" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "number=" >> $GITHUB_OUTPUT
+          fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -192,5 +243,51 @@ jobs:
             --base main \
             --label "auto-generated,production" \
             --assignee "${{ github.actor }}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update existing Pull Request staging → main
+        if: steps.check-diff.outputs.has-changes == 'true' && steps.check-pr.outputs.exists == 'true'
+        run: |
+          COMMITS=$(git log origin/main..origin/staging --oneline --no-merges | head -15)
+          FILES_CHANGED=$(git diff --name-only origin/main origin/staging | head -25)
+
+          cat > pr_body.md << 'EOF'
+          ## 🌟 Staging to Production Release
+
+          **Auto-generated PR**: Promoting tested staging changes to production.
+          
+          **🔄 Last updated**: $(date -u '+%Y-%m-%d %H:%M UTC')
+
+          ### 🔍 All Changes Since Last Release
+          ```
+          EOF
+          echo "$COMMITS" >> pr_body.md
+          cat >> pr_body.md << 'EOF'
+          ```
+
+          ### 📁 Files Modified
+          EOF
+          echo "$FILES_CHANGED" | sed 's/^/- `/' | sed 's/$/`/' >> pr_body.md
+          cat >> pr_body.md << 'EOF'
+
+          ### ⚠️ Pre-Merge Checklist
+          - [ ] All CI/CD checks are passing
+          - [ ] Staging environment testing completed
+          - [ ] Breaking changes documented (if any)
+          - [ ] Database migrations tested (if applicable)
+          - [ ] All Jira issues are linked and moved to specific column in Jira
+          - [ ] Performance impact assessed
+
+          ### ✅ Merge Instructions
+          - **IMPORTANT: Use "Create a merge commit" when merging**
+          - Do NOT use squash or rebase merge
+
+          ---
+          *🤖 This PR was created automatically by GitHub Actions*
+          EOF
+
+          gh pr edit ${{ steps.check-pr.outputs.number }} \
+            --body-file pr_body.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
