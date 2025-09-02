@@ -91,7 +91,7 @@ jobs:
             --body-file pr_body.md \
             --head dev1 \
             --base staging \
-            --label "auto-generated,staging-sync" \
+            --label "auto-generated" \
             --assignee "${{ github.actor }}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -185,7 +185,7 @@ jobs:
             --body-file pr_body.md \
             --head staging \
             --base main \
-            --label "auto-generated,release,production" \
+            --label "auto-generated,production" \
             --assignee "${{ github.actor }}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
