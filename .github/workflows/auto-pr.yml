@@ -68,7 +68,7 @@ jobs:
       - name: Create Pull Request dev1 → staging
         if: steps.check-diff.outputs.has-changes == 'true' && steps.check-pr.outputs.exists == 'false'
         run: |
-          COMMITS=$(git log origin/staging..origin/dev1 --oneline --no-merges | head -10)
+          COMMITS=$(git log origin/staging..origin/dev1 --pretty=format:"%h - %s (%an, %ar)" --no-merges | head -10)
           FILES_CHANGED=$(git diff --name-only origin/staging origin/dev1 | head -20)
 
           cat > pr_body.md << 'EOF'
@@ -110,7 +110,7 @@ jobs:
       - name: Update existing Pull Request dev1 → staging
         if: steps.check-diff.outputs.has-changes == 'true' && steps.check-pr.outputs.exists == 'true'
         run: |
-          COMMITS=$(git log origin/staging..origin/dev1 --oneline --no-merges | head -10)
+          COMMITS=$(git log origin/staging..origin/dev1 --pretty=format:"%h - %s (%an, %ar)" --no-merges | head -10)
           FILES_CHANGED=$(git diff --name-only origin/staging origin/dev1 | head -20)
 
           cat > pr_body.md << 'EOF'
@@ -200,7 +200,7 @@ jobs:
       - name: Create Pull Request staging → main
         if: steps.check-diff.outputs.has-changes == 'true' && steps.check-pr.outputs.exists == 'false'
         run: |
-          COMMITS=$(git log origin/main..origin/staging --oneline --no-merges | head -15)
+          COMMITS=$(git log origin/main..origin/staging --pretty=format:"%h - %s (%an, %ar)" --no-merges | head -15)
           FILES_CHANGED=$(git diff --name-only origin/main origin/staging | head -25)
 
           cat > pr_body.md << 'EOF'
@@ -249,7 +249,7 @@ jobs:
       - name: Update existing Pull Request staging → main
         if: steps.check-diff.outputs.has-changes == 'true' && steps.check-pr.outputs.exists == 'true'
         run: |
-          COMMITS=$(git log origin/main..origin/staging --oneline --no-merges | head -15)
+          COMMITS=$(git log origin/main..origin/staging --pretty=format:"%h - %s (%an, %ar)" --no-merges | head -15)
           FILES_CHANGED=$(git diff --name-only origin/main origin/staging | head -25)
 
           cat > pr_body.md << 'EOF'
